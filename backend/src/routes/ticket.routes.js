@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import {
   crearTicket,
-  obtenerMisTickets
+  obtenerMisTickets,
+  obtenerTodosTickets,
+  asignarTicket,
+  cambiarEstadoTicket
 } from "../controllers/ticket.controller.js";
 
 import {
@@ -12,6 +15,13 @@ import {
 import {
   verificarRol
 } from "../middleware/role.middleware.js";
+
+
+
+
+
+
+
 
 const router = Router();
 
@@ -44,6 +54,37 @@ router.get(
       mensaje: "Panel admin"
     });
   }
+);
+
+
+router.get(
+  "/",
+
+  verificarToken,
+
+  verificarRol("admin", "tecnico"),
+
+  obtenerTodosTickets
+);
+
+router.put(
+  "/:id/asignar",
+
+  verificarToken,
+
+  verificarRol("admin", "tecnico"),
+
+  asignarTicket
+);
+
+router.put(
+  "/:id/estado",
+
+  verificarToken,
+
+  verificarRol("admin", "tecnico"),
+
+  cambiarEstadoTicket
 );
 
 

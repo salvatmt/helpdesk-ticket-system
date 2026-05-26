@@ -110,3 +110,174 @@ export const obtenerMisTickets = async (req, res) => {
     });
   }
 };
+
+
+export const obtenerTodosTickets = async (req, res) => {
+
+  try {
+
+    const tickets = await pool.query(
+      `
+      SELECT
+
+        tickets.id,
+        tickets.titulo,
+        tickets.descripcion,
+        tickets.creado_en,
+
+        usuarios.nombre AS usuario,
+
+        tecnico.nombre AS tecnico,
+
+        prioridades.nombre AS prioridad,
+
+        estados.nombre AS estado
+
+      FROM tickets
+
+      JOIN usuarios
+      ON tickets.usuario_id = usuarios.id
+
+      LEFT JOIN usuarios AS tecnico
+      ON tickets.tecnico_id = tecnico.id
+
+      JOIN prioridades
+      ON tickets.prioridad_id = prioridades.id
+
+      JOIN estados
+      ON tickets.estado_id = estados.id
+
+      ORDER BY tickets.creado_en DESC
+      `
+    );
+
+    res.json(tickets.rows);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      mensaje: "Error del servidor"
+    });
+  }
+};
+
+export const asignarTicket = async (req, res) => {
+
+  try {
+
+    const ticketId = req.params.id;
+
+    // Técnico autenticado
+    const tecnico_id = req.usuario.id;
+
+    // Estado en_proceso = 2
+    const estado_id = 2;
+
+    // Verificar ticket existe
+    const ticketExiste = await pool.query(
+      `
+      SELECT * FROM tickets
+      WHERE id = $1
+      `,
+      [ticketId]
+    );
+
+    if (ticketExiste.rows.length === 0) {
+
+      return res.status(404).json({
+        mensaje: "Ticket no encontrado"
+      });
+    }
+
+    // Actualizar ticket
+    const ticketActualizado = await pool.query(
+      `
+      UPDATE tickets
+
+      SET
+        tecnico_id = $1,
+        estado_id = $2,
+        actualizado_en = CURRENT_TIMESTAMP
+
+      WHERE id = $3
+
+      RETURNING *
+      `,
+      [
+        tecnico_id,
+        estado_id,
+        ticketId
+      ]
+    );
+
+    res.json({
+      mensaje: "Ticket asignado correctamente",
+      ticket: ticketActualizado.rows[0]
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      mensaje: "Error del servidor"
+    });
+  }
+};
+
+export const cambiarEstadoTicket = async (req, res) => {
+
+  try {
+
+    const ticketId = req.params.id;
+
+    const { estado_id } = req.body;
+
+    // Verificar ticket
+    const ticketExiste = await pool.query(
+      `
+      SELECT * FROM tickets
+      WHERE id = $1
+      `,
+      [ticketId]
+    );
+
+    if (ticketExiste.rows.length === 0) {
+
+      return res.status(404).json({
+        mensaje: "Ticket no encontrado"
+      });
+    }
+
+    // Actualizar estado
+    const ticketActualizado = await pool.query(
+      `
+      UPDATE tickets
+
+      SET
+        estado_id = $1,
+        actualizado_en = CURRENT_TIMESTAMP
+
+      WHERE id = $2
+
+      RETURNING *
+      `,
+      [estado_id, ticketId]
+    );
+
+    res.json({
+      mensaje: "Estado actualizado correctamente",
+      ticket: ticketActualizado.rows[0]
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      mensaje: "Error del servidor"
+    });
+  }
+};
